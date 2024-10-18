@@ -1,0 +1,67 @@
+workflowExternalId: wf_icapi_data_pipeline
+version: '1'
+workflowDefinition:
+  tasks:
+  - externalId: icapi_assets_extractor_function_task
+    type: function
+    parameters:
+      function:
+        externalId: icapi_assets_extractor
+    retries: 3
+    timeout: 3600
+    onFailure: abortWorkflow
+  - externalId: icapi_timeseries_extractor_function_task
+    type: function
+    parameters:
+      function:
+        externalId: icapi_timeseries_extractor
+    retries: 3
+    timeout: 3600
+    onFailure: abortWorkflow
+  - externalId: icapi_datapoints_extractor_function_task
+    type: function
+    parameters:
+      function:
+        externalId: icapi_datapoints_extractor_extractor
+        concurrencyPolicy: waitForCurrent
+    retries: 3
+    timeout: 3600
+    onFailure: abortWorkflow
+    dependsOn:
+        - externalId: icapi_timeseries_extractor_function_task
+  - externalId: create_asset_hierarchy_transformation_task
+    type: transformation
+    parameters:
+      transformation:
+        externalId: create_asset_hierarchy
+        concurrencyPolicy: waitForCurrent
+    retries: 3
+    timeout: 3600
+    onFailure: abortWorkflow
+    dependsOn:
+        - externalId: icapi_assets_extractor_function_task
+        - externalId: icapi_timeseries_extractor_function_task
+  - externalId: icapi_ts_assets_contextualization_transformation_task
+    type: transformation
+    parameters:
+      transformation:
+        externalId: icapi_ts_assets_contextualization_extractor
+        concurrencyPolicy: waitForCurrent
+    retries: 3
+    timeout: 3600
+    onFailure: abortWorkflow
+    dependsOn:
+        - externalId: create_asset_hierarchy_transformation_task
+        - externalId: icapi_timeseries_extractor_function_task
+  - externalId: oee_timeseries_function_task
+    type: function
+    parameters:
+      function:
+        externalId: oee_timeseries_extractor
+        concurrencyPolicy: waitForCurrent
+    retries: 3
+    timeout: 3600
+    onFailure: abortWorkflow
+    dependsOn:
+        - externalId: icapi_datapoints_extractor_function_task
+        - externalId: icapi_ts_assets_contextualization_transformation_task
